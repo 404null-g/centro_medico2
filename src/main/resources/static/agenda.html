@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agenda · Centro Médico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="css/estilos.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 titulo-pagina mb-0" id="tituloAgenda"><i class="bi bi-journal-medical"></i> Agenda</h1>
+      <p class="text-muted mb-0" id="subtitulo"></p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-outline-cm" id="btnAnterior" aria-label="Día anterior"><i class="bi bi-chevron-left"></i></button>
+      <input type="date" class="form-control" id="fFecha" aria-label="Fecha">
+      <button class="btn btn-outline-cm" id="btnSiguiente" aria-label="Día siguiente"><i class="bi bi-chevron-right"></i></button>
+      <button class="btn btn-outline-cm" id="btnHoy">Hoy</button>
+    </div>
+  </div>
+
+  <div class="card card-cm mb-3 d-none" id="bloqueProfesional">
+    <div class="card-body py-2">
+      <label class="form-label small mb-1" for="fProfesional">Profesional</label>
+      <select class="form-select" id="fProfesional" data-carga="/profesionales?soloActivos=true" data-texto="{apellido}, {nombre} — {especialidad.nombre}">
+        <option value="">Seleccione un profesional…</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-3" id="resumen"></div>
+
+  <div class="card card-cm">
+    <div class="tabla-scroll">
+      <table class="table table-hover table-cm mb-0">
+        <thead><tr><th>Hora</th><th>Paciente</th><th>Motivo</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- Registro de la atención (solo profesionales) -->
+<div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="tituloModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="tituloModal"><i class="bi bi-clipboard2-pulse"></i> Registrar atención</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-light border" id="datosPaciente"></div>
+        <div id="alertaModal" class="alert alert-danger d-none" role="alert"></div>
+        <form id="form" novalidate>
+          <input type="hidden" name="turno.id" id="f-turno-id">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label" for="f-motivoConsulta">Motivo de consulta <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="f-motivoConsulta" name="motivoConsulta" rows="2" maxlength="300" required></textarea>
+              <div class="invalid-feedback">Indique el motivo de consulta</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="f-diagnostico">Diagnóstico <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="f-diagnostico" name="diagnostico" rows="2" maxlength="500" required></textarea>
+              <div class="invalid-feedback">Indique el diagnóstico</div>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="f-indicaciones">Indicaciones / tratamiento</label>
+              <textarea class="form-control" id="f-indicaciones" name="indicaciones" rows="3" maxlength="1000"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="f-observaciones">Observaciones</label>
+              <textarea class="form-control" id="f-observaciones" name="observaciones" rows="3" maxlength="4000"></textarea>
+              <div class="form-text">Podrá corregir esta atención durante las 24 horas siguientes.</div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-cm" id="btnGuardar"><i class="bi bi-check-lg"></i> Guardar atención</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+(async () => {
+  const sesion = await iniciarPagina();
+  if (!sesion) return;
+  const $ = id => document.getElementById(id);
+  const esProf = sesion.rol === 'PROFESIONAL';
+  const form = $('form'), tbody = $('tbody');
+  const modal = new bootstrap.Modal($('modalForm'));
+  let profesionalId = esProf ? sesion.profesionalId : null;
+  let turnos = [];
+
+  $('fFecha').value = hoy();
+  if (esProf) {
+    $('tituloAgenda').innerHTML = '<i class="bi bi-journal-medical"></i> Mi agenda';
+  } else {
+    $('bloqueProfesional').classList.remove('d-none');
+    await cargarSelects();
+    $('fProfesional').addEventListener('change', () => { profesionalId = $('fProfesional').value || null; cargar(); });
+  }
+
+  async function cargar() {
+    $('subtitulo').textContent = fmtDiaLargo($('fFecha').value);
+    if (!profesionalId) { tbody.innerHTML = filaVacia(5, 'Seleccione un profesional para ver su agenda'); $('resumen').innerHTML = ''; return; }
+    try { turnos = await api(`/profesionales/${profesionalId}/turnos?fecha=${$('fFecha').value}`); }
+    catch (e) { alerta(e.message, 'danger'); return; }
+
+    const cuenta = e => turnos.filter(t => t.estado === e).length;
+    $('resumen').innerHTML = ['RESERVADO', 'EN_ESPERA', 'ATENDIDO'].map(e => `${badgeEstado(e)} <strong class="me-2">${cuenta(e)}</strong>`).join('');
+    if (!turnos.length) { tbody.innerHTML = filaVacia(5, 'No hay turnos ese día'); return; }
+
+    tbody.innerHTML = turnos.map(t => {
+      const acciones = [];
+      if (esProf) {
+        if (t.estado === 'EN_ESPERA') acciones.push(`<button class="btn btn-sm btn-cm" data-atender="${t.id}"><i class="bi bi-clipboard2-plus"></i> Atender</button>`);
+        acciones.push(`<a class="btn btn-sm btn-outline-cm" href="historia.html?paciente=${t.paciente.id}" title="Ver historia clínica"><i class="bi bi-clipboard2-pulse"></i></a>`);
+      }
+      return `<tr class="${t.estado === 'CANCELADO' ? 'text-muted' : ''}">
+        <td><strong>${hhmm(t.hora)}</strong></td>
+        <td><strong>${esc(t.paciente.apellido)}</strong>, ${esc(t.paciente.nombre)}<br>
+            <small class="text-muted">${edad(t.paciente.fechaNacimiento)} años · ${textoCobertura(t.paciente)}</small></td>
+        <td>${esc(t.motivo || '—')}${t.observaciones ? '<br><small class="text-muted">' + esc(t.observaciones) + '</small>' : ''}</td>
+        <td>${badgeEstado(t.estado)}</td>
+        <td class="text-end text-nowrap">${acciones.join(' ')}</td></tr>`;
+    }).join('');
+  }
+
+  const moverDia = n => { $('fFecha').value = sumarDias($('fFecha').value || hoy(), n); cargar(); };
+  $('btnAnterior').addEventListener('click', () => moverDia(-1));
+  $('btnSiguiente').addEventListener('click', () => moverDia(1));
+  $('btnHoy').addEventListener('click', () => { $('fFecha').value = hoy(); cargar(); });
+  $('fFecha').addEventListener('change', cargar);
+
+  // ------------------------------------------------------------ registrar atención
+  tbody.addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-atender]');
+    if (!b) return;
+    const t = turnos.find(x => x.id == b.dataset.atender);
+    form.reset();
+    limpiarErrores(form);
+    $('alertaModal').classList.add('d-none');
+    $('f-turno-id').value = t.id;
+    $('f-motivoConsulta').value = t.motivo || '';
+    $('datosPaciente').innerHTML = `<strong>${esc(t.paciente.apellido)}, ${esc(t.paciente.nombre)}</strong> · ${edad(t.paciente.fechaNacimiento)} años · DNI ${esc(t.paciente.dni)}
+      <br><small class="text-muted">${textoCobertura(t.paciente)} · Turno de las ${hhmm(t.hora)} hs</small>`;
+    modal.show();
+  });
+
+  $('btnGuardar').addEventListener('click', async () => {
+    limpiarErrores(form);
+    $('alertaModal').classList.add('d-none');
+    if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+    $('btnGuardar').disabled = true;
+    try {
+      await api('/atenciones', { metodo: 'POST', cuerpo: leerFormulario(form) });
+      modal.hide();
+      alerta('Atención registrada. El turno quedó como Atendido.');
+      cargar();
+    } catch (e) {
+      mostrarErroresServidor(form, e.errores);
+      $('alertaModal').textContent = e.message;
+      $('alertaModal').classList.remove('d-none');
+    } finally { $('btnGuardar').disabled = false; }
+  });
+
+  cargar();
+  // La sala de espera cambia durante el día: se refresca sola cada minuto si no hay un formulario abierto
+  setInterval(() => { if (!document.querySelector('.modal.show')) cargar(); }, 60000);
+})().catch(e => alerta(e.message, 'danger'));
+</script>
+</body>
+</html>

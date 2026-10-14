@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profesionales · Centro Médico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="css/estilos.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 titulo-pagina mb-0"><i class="bi bi-person-badge"></i> Profesionales</h1>
+    <button class="btn btn-cm" id="btnNuevo"><i class="bi bi-plus-lg"></i> Nuevo profesional</button>
+  </div>
+  <div class="card card-cm">
+    <div class="card-body">
+      <div class="row g-2 mb-3">
+        <div class="col-md-5"><div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span><input type="search" class="form-control" data-filtro="q" placeholder="Buscar por apellido o nombre" aria-label="Buscar"></div></div><div class="col-md-4"><select class="form-select" data-filtro="especialidadId" data-carga="/especialidades" data-texto="{nombre}" aria-label="Filtrar por especialidad"><option value="">Todas las especialidades</option></select></div>
+      </div>
+      <div class="tabla-scroll">
+        <table class="table table-hover table-cm mb-0">
+          <thead><tr><th>Profesional</th><th>Matrícula</th><th>Especialidad</th><th>Consultorio</th><th>Días y horario</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+<div class="modal fade" id="modalForm" tabindex="-1" aria-labelledby="tituloModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="tituloModal"></h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="form" novalidate>
+          <div class="row g-3"><div class="col-md-6"><label class="form-label" for="f-apellido">Apellido <span class="text-danger">*</span></label><input class="form-control" type="text" id="f-apellido" name="apellido" required maxlength="60"><div class="invalid-feedback">Complete este campo correctamente</div></div><div class="col-md-6"><label class="form-label" for="f-nombre">Nombre <span class="text-danger">*</span></label><input class="form-control" type="text" id="f-nombre" name="nombre" required maxlength="60"><div class="invalid-feedback">Complete este campo correctamente</div></div><div class="col-md-4"><label class="form-label" for="f-dni">DNI <span class="text-danger">*</span></label><input class="form-control" type="text" id="f-dni" name="dni" required inputmode="numeric" pattern="\d{7,8}" maxlength="8"><div class="invalid-feedback">Ingrese 7 u 8 dígitos, sin puntos</div></div><div class="col-md-4"><label class="form-label" for="f-matricula">Matrícula <span class="text-danger">*</span></label><input class="form-control" type="text" id="f-matricula" name="matricula" required maxlength="20"><div class="invalid-feedback">Complete este campo correctamente</div><div class="form-text">Ej: MP-31254</div></div><div class="col-md-4"><label class="form-label" for="f-especialidad-id">Especialidad <span class="text-danger">*</span></label><select class="form-select" id="f-especialidad-id" name="especialidad.id" data-carga="/especialidades?soloActivas=true" data-texto="{nombre} ({duracionTurnoMin} min)" required ><option value="">Seleccionar…</option></select><div class="invalid-feedback">Complete este campo correctamente</div></div><div class="col-md-4"><label class="form-label" for="f-telefono">Teléfono</label><input class="form-control" type="tel" id="f-telefono" name="telefono" pattern="[0-9+()\s\-]{6,20}" maxlength="20"><div class="invalid-feedback">Complete este campo correctamente</div></div><div class="col-md-4"><label class="form-label" for="f-email">Email</label><input class="form-control" type="email" id="f-email" name="email" maxlength="100"><div class="invalid-feedback">Ingrese un email válido</div></div><div class="col-md-4"><label class="form-label" for="f-consultorio">Consultorio <span class="text-danger">*</span></label><input class="form-control" type="text" id="f-consultorio" name="consultorio" required maxlength="20"><div class="invalid-feedback">Complete este campo correctamente</div><div class="form-text">Ej: Consultorio 3</div></div><div class="col-12"><hr class="my-1"><h3 class="h6 text-muted mb-0">Agenda de atención</h3></div><div class="col-md-6"><label class="form-label">Días de atención <span class="text-danger">*</span></label><div class="d-flex flex-wrap gap-1" id="grupoDias"><input type="checkbox" class="btn-check dia" id="dia-LUN" value="LUN" autocomplete="off"><label class="btn btn-outline-cm btn-sm" for="dia-LUN">Lun</label><input type="checkbox" class="btn-check dia" id="dia-MAR" value="MAR" autocomplete="off"><label class="btn btn-outline-cm btn-sm" for="dia-MAR">Mar</label><input type="checkbox" class="btn-check dia" id="dia-MIE" value="MIE" autocomplete="off"><label class="btn btn-outline-cm btn-sm" for="dia-MIE">Mié</label><input type="checkbox" class="btn-check dia" id="dia-JUE" value="JUE" autocomplete="off"><label class="btn btn-outline-cm btn-sm" for="dia-JUE">Jue</label><input type="checkbox" class="btn-check dia" id="dia-VIE" value="VIE" autocomplete="off"><label class="btn btn-outline-cm btn-sm" for="dia-VIE">Vie</label><input type="checkbox" class="btn-check dia" id="dia-SAB" value="SAB" autocomplete="off"><label class="btn btn-outline-cm btn-sm" for="dia-SAB">Sáb</label></div><input type="text" class="form-control form-control-sm mt-2" id="f-diasAtencion" name="diasAtencion" readonly tabindex="-1" placeholder="Elija al menos un día"><div class="invalid-feedback"></div></div><div class="col-md-3"><label class="form-label" for="f-horaDesde">Desde <span class="text-danger">*</span></label><input class="form-control" type="time" id="f-horaDesde" name="horaDesde" required ><div class="invalid-feedback">Complete este campo correctamente</div></div><div class="col-md-3"><label class="form-label" for="f-horaHasta">Hasta <span class="text-danger">*</span></label><input class="form-control" type="time" id="f-horaHasta" name="horaHasta" required ><div class="invalid-feedback">Debe ser posterior a la hora de inicio</div></div><div class="col-12 solo-edicion d-none"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="f-activo" name="activo"><label class="form-check-label" for="f-activo">Profesional activo</label></div></div></div>
+        </form>
+        <p class="small text-muted mt-3 mb-0"><span class="text-danger">*</span> Campo obligatorio</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-cm" id="btnGuardar"><i class="bi bi-check-lg"></i> Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+(async () => {
+  const sesion = await iniciarPagina(['ADMIN', 'RECEPCION']);
+  if (!sesion) return;
+  await cargarSelects();
+
+  const checks = [...document.querySelectorAll('.dia')];
+  const salida = document.getElementById('f-diasAtencion');
+  const actualizarDias = () => { salida.value = checks.filter(c => c.checked).map(c => c.value).join(','); };
+  checks.forEach(c => c.addEventListener('change', actualizarDias));
+
+  crearABM({
+    ruta: '/profesionales', entidad: 'profesional', columnas: 7, puedeEscribir: sesion.rol === 'ADMIN',
+    filas: p => `
+      <td><strong>${esc(p.apellido)}</strong>, ${esc(p.nombre)}</td>
+      <td>${esc(p.matricula)}</td>
+      <td>${esc(p.especialidad.nombre)}</td>
+      <td>${esc(p.consultorio)}</td>
+      <td class="small">${esc(p.diasAtencion.split(',').join(' · '))}<br><span class="text-muted">${hhmm(p.horaDesde)} a ${hhmm(p.horaHasta)}</span></td>
+      <td>${badgeActivo(p.activo)}</td>`,
+    alAbrir: p => {
+      const dias = p ? p.diasAtencion.split(',') : [];
+      checks.forEach(c => { c.checked = dias.includes(c.value); });
+      actualizarDias();
+    },
+    validar: () => {
+      if (!salida.value) return 'Seleccione al menos un día de atención';
+      if (document.getElementById('f-horaDesde').value >= document.getElementById('f-horaHasta').value)
+        return 'La hora de inicio debe ser anterior a la hora de fin';
+      return null;
+    }
+  });
+})();
+</script>
+</body>
+</html>

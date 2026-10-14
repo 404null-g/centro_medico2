@@ -1,0 +1,57 @@
+/* Centro Médico — estilos propios sobre Bootstrap 5 */
+:root {
+  --cm-primario: #0f766e;        /* verde azulado: salud, calma */
+  --cm-primario-oscuro: #0b5a54;
+  --cm-fondo: #f3f7f6;
+  --cm-borde: #dbe5e3;
+  --cm-texto: #1f2d2b;
+}
+
+body { background: var(--cm-fondo); color: var(--cm-texto); }
+
+.navbar-cm { background: var(--cm-primario); }
+.navbar-cm .navbar-brand, .navbar-cm .nav-link { color: #fff; }
+.navbar-cm .nav-link { opacity: .85; border-radius: .4rem; padding: .45rem .8rem; }
+.navbar-cm .nav-link:hover { opacity: 1; background: rgba(255,255,255,.12); }
+.navbar-cm .nav-link.active { opacity: 1; background: var(--cm-primario-oscuro); }
+.navbar-cm .navbar-toggler { border-color: rgba(255,255,255,.5); }
+.navbar-cm .navbar-toggler-icon { filter: invert(1); }
+
+.btn-cm { background: var(--cm-primario); border-color: var(--cm-primario); color: #fff; }
+.btn-cm:hover, .btn-cm:focus { background: var(--cm-primario-oscuro); border-color: var(--cm-primario-oscuro); color: #fff; }
+.btn-outline-cm { color: var(--cm-primario); border-color: var(--cm-primario); }
+.btn-outline-cm:hover { background: var(--cm-primario); color: #fff; }
+
+.card-cm { border: 1px solid var(--cm-borde); border-radius: .75rem; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.card-cm .card-header { background: #fff; border-bottom: 1px solid var(--cm-borde); font-weight: 600; }
+
+.titulo-pagina { font-weight: 700; color: var(--cm-primario-oscuro); }
+
+.table > :not(caption) > * > * { vertical-align: middle; }
+.table-cm thead th { background: #e8f1ef; color: var(--cm-primario-oscuro); font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; }
+
+/* Estados del turno: cada uno con su color para leer la agenda de un vistazo */
+.estado { font-size: .75rem; font-weight: 600; padding: .35em .7em; border-radius: 2rem; white-space: nowrap; }
+.estado-RESERVADO { background: #dbeafe; color: #1e40af; }
+.estado-EN_ESPERA { background: #fef3c7; color: #92400e; }
+.estado-ATENDIDO  { background: #d1fae5; color: #065f46; }
+.estado-CANCELADO { background: #e5e7eb; color: #4b5563; }
+.estado-AUSENTE   { background: #fee2e2; color: #991b1b; }
+
+.contador { border-left: 5px solid var(--cm-primario); }
+.contador .numero { font-size: 2rem; font-weight: 700; line-height: 1; }
+.contador-RESERVADO { border-left-color: #3b82f6; }
+.contador-EN_ESPERA { border-left-color: #f59e0b; }
+.contador-ATENDIDO  { border-left-color: #10b981; }
+.contador-CANCELADO { border-left-color: #9ca3af; }
+
+.linea-tiempo { border-left: 3px solid var(--cm-borde); margin-left: .5rem; padding-left: 1.25rem; }
+.linea-tiempo .hito { position: relative; margin-bottom: 1.25rem; }
+.linea-tiempo .hito::before { content: ""; position: absolute; left: -1.78rem; top: .45rem; width: .8rem; height: .8rem; border-radius: 50%; background: var(--cm-primario); border: 2px solid var(--cm-fondo); }
+
+.login-caja { max-width: 400px; }
+.vacio { color: #6b7280; text-align: center; padding: 2rem 1rem; }
+
+/* En celulares, las tablas se desplazan horizontalmente en vez de romper el diseño */
+.tabla-scroll { overflow-x: auto; }
+@media (max-width: 576px) { .titulo-pagina { font-size: 1.35rem; } }

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Historias clínicas · Centro Médico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="css/estilos.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+<main class="container py-4">
+  <div class="mb-3">
+    <h1 class="h3 titulo-pagina mb-1"><i class="bi bi-clipboard2-pulse"></i> Historias clínicas</h1>
+    <p class="text-muted small mb-0"><i class="bi bi-lock"></i> Información confidencial: su consulta queda a cargo del profesional que la realiza.</p>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card card-cm">
+        <div class="card-header">Buscar paciente</div>
+        <div class="card-body">
+          <div class="input-group mb-2">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="search" class="form-control" id="buscar" placeholder="Apellido, nombre o DNI" autocomplete="off" aria-label="Buscar paciente">
+          </div>
+          <div class="list-group list-group-flush" id="resultados"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div id="panel"><div class="card card-cm"><div class="vacio"><i class="bi bi-person-lines-fill fs-2 d-block mb-1"></i>Busque y elija un paciente para ver su historia</div></div></div>
+    </div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+(async () => {
+  const sesion = await iniciarPagina(['PROFESIONAL']);
+  if (!sesion) return;
+  const $ = id => document.getElementById(id);
+
+  async function abrirHistoria(id) {
+    $('panel').innerHTML = '<div class="card card-cm"><div class="vacio">Cargando…</div></div>';
+    try {
+      const [p, atenciones] = await Promise.all([api('/pacientes/' + id), api(`/pacientes/${id}/atenciones`)]);
+      const hitos = atenciones.map(a => `<div class="hito">
+          <div class="d-flex flex-wrap justify-content-between">
+            <strong>${fmtFechaHora(a.fechaHora)}</strong>
+            <span class="text-muted small">${esc(nombreProfesional(a.turno.profesional))} · ${esc(a.turno.profesional.especialidad.nombre)}</span>
+          </div>
+          <p class="mb-1 mt-1"><span class="text-muted">Motivo:</span> ${esc(a.motivoConsulta)}</p>
+          <p class="mb-1"><span class="text-muted">Diagnóstico:</span> <strong>${esc(a.diagnostico)}</strong></p>
+          ${a.indicaciones ? `<p class="mb-1"><span class="text-muted">Indicaciones:</span> ${esc(a.indicaciones)}</p>` : ''}
+          ${a.observaciones ? `<p class="mb-0 small text-muted" style="white-space: pre-wrap">${esc(a.observaciones)}</p>` : ''}
+        </div>`).join('');
+      $('panel').innerHTML = `<div class="card card-cm">
+        <div class="card-header">
+          <div class="fs-5">${esc(p.apellido)}, ${esc(p.nombre)} ${p.activo ? '' : '<span class="badge text-bg-secondary">De baja</span>'}</div>
+          <div class="small text-muted fw-normal">DNI ${esc(p.dni)} · ${edad(p.fechaNacimiento)} años (${fmtFecha(p.fechaNacimiento)}) · ${textoCobertura(p)}</div>
+        </div>
+        <div class="card-body">${atenciones.length
+          ? `<div class="linea-tiempo">${hitos}</div>`
+          : '<div class="vacio"><i class="bi bi-journal-x fs-3 d-block mb-1"></i>Este paciente todavía no tiene atenciones registradas</div>'}
+        </div></div>`;
+      history.replaceState(null, '', '?paciente=' + id);
+    } catch (e) { alerta(e.message, 'danger'); }
+  }
+
+  const buscar = antiRebote(async () => {
+    const q = $('buscar').value.trim();
+    if (q.length < 2) { $('resultados').innerHTML = ''; return; }
+    const lista = await api('/pacientes?q=' + encodeURIComponent(q));
+    $('resultados').innerHTML = lista.length
+      ? lista.slice(0, 15).map(p => `<button class="list-group-item list-group-item-action" data-id="${p.id}">
+          <strong>${esc(p.apellido)}</strong>, ${esc(p.nombre)}<br><small class="text-muted">DNI ${esc(p.dni)} · ${edad(p.fechaNacimiento)} años</small></button>`).join('')
+      : '<div class="vacio py-3">Sin resultados</div>';
+  });
+  $('buscar').addEventListener('input', buscar);
+  $('resultados').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-id]');
+    if (b) abrirHistoria(b.dataset.id);
+  });
+
+  const inicial = new URLSearchParams(location.search).get('paciente');
+  if (inicial) abrirHistoria(inicial);
+})().catch(e => alerta(e.message, 'danger'));
+</script>
+</body>
+</html>

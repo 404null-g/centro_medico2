@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inicio · Centro Médico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="css/estilos.css" rel="stylesheet">
+</head>
+<body>
+<div id="navbar"></div>
+<main class="container py-4">
+  <div class="mb-4">
+    <h1 class="h3 titulo-pagina mb-0" id="saludo">Inicio</h1>
+    <p class="text-muted mb-0" id="fechaHoy"></p>
+  </div>
+  <div class="row g-3 mb-4" id="contadores"></div>
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card card-cm h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-calendar-day"></i> Turnos de hoy</span>
+          <a class="btn btn-sm btn-outline-cm" href="agenda.html">Ver agenda</a>
+        </div>
+        <div class="tabla-scroll">
+          <table class="table table-hover table-cm mb-0">
+            <thead><tr><th>Hora</th><th>Paciente</th><th id="thProf">Profesional</th><th>Estado</th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card card-cm h-100">
+        <div class="card-header"><i class="bi bi-lightning-charge"></i> Accesos rápidos</div>
+        <div class="list-group list-group-flush" id="accesos"></div>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+(async () => {
+  const sesion = await iniciarPagina();
+  if (!sesion) return;
+  const esProf = sesion.rol === 'PROFESIONAL';
+  document.getElementById('saludo').textContent = (esProf ? 'Buen día, Dr/a. ' : 'Hola, ') + sesion.nombre.split(',')[0];
+  document.getElementById('fechaHoy').textContent = fmtDiaLargo(hoy());
+  if (esProf) document.getElementById('thProf').textContent = 'Motivo';
+
+  const accesos = {
+    ADMIN: [['turnos.html', 'bi-calendar-plus', 'Reservar un turno'], ['profesionales.html', 'bi-person-badge', 'Profesionales y agendas'], ['usuarios.html', 'bi-shield-lock', 'Usuarios del sistema']],
+    RECEPCION: [['turnos.html', 'bi-calendar-plus', 'Reservar un turno'], ['pacientes.html', 'bi-person-plus', 'Registrar un paciente'], ['agenda.html', 'bi-journal-medical', 'Consultar una agenda']],
+    PROFESIONAL: [['agenda.html', 'bi-journal-medical', 'Mi agenda de hoy'], ['historia.html', 'bi-clipboard2-pulse', 'Consultar una historia clínica']]
+  }[sesion.rol];
+  document.getElementById('accesos').innerHTML = accesos.map(a =>
+    `<a class="list-group-item list-group-item-action py-3" href="${a[0]}"><i class="bi ${a[1]} me-2"></i>${a[2]}</a>`).join('');
+
+  const turnos = await api('/turnos?fecha=' + hoy());
+  const cuenta = e => turnos.filter(t => t.estado === e).length;
+  document.getElementById('contadores').innerHTML = [['RESERVADO', 'Reservados'], ['EN_ESPERA', 'En sala de espera'], ['ATENDIDO', 'Atendidos'], ['CANCELADO', 'Cancelados']]
+    .map(([e, txt]) => `<div class="col-6 col-lg-3"><div class="card card-cm contador contador-${e}"><div class="card-body py-3">
+        <div class="numero">${cuenta(e)}</div><div class="text-muted small">${txt}</div></div></div></div>`).join('');
+
+  document.getElementById('tbody').innerHTML = turnos.length
+    ? turnos.map(t => `<tr><td><strong>${hhmm(t.hora)}</strong></td>
+        <td>${esc(t.paciente.apellido)}, ${esc(t.paciente.nombre)}</td>
+        <td>${esProf ? esc(t.motivo || '—') : esc(nombreProfesional(t.profesional))}</td>
+        <td>${badgeEstado(t.estado)}</td></tr>`).join('')
+    : filaVacia(4, 'No hay turnos para hoy');
+})().catch(e => alerta(e.message, 'danger'));
+</script>
+</body>
+</html>
